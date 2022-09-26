@@ -161,17 +161,36 @@ private:
 class random_slider : public random_agent {
 public:
 	random_slider(const std::string& args = "") : random_agent("name=slide role=slider " + args),
-		opcode({ 0, 1, 2, 3 }) {}
+		opcode({ 0, 1, 2, 3 }) {} // URDL
 
 	virtual action take_action(const board& before) {
-		std::shuffle(opcode.begin(), opcode.end(), engine);
+		// std::shuffle(opcode.begin(), opcode.end(), engine);
+		// for (int op : opcode) {
+		// 	std::cerr << "Board: " << before << std::endl;
+		// 	std::cerr << "Board.info: " << before.info() << std::endl;
+		// 	const board::cell* begin = before.begin();
+		// 	for (int i=0;i<16;i++){
+		// 		begin += i;
+		// 		std::cerr << "Board.hint: " << before.hint(*begin) << std::endl;
+		// 	}
+			
+		// 	board::reward reward = board(before).slide(op);
+		// 	std::cerr << "Reward: " << reward << std::endl;
+			
+		// 	if (reward != -1) return action::slide(op);
+		// }
 		for (int op : opcode) {
+			// step += 1;
+			// op = (op + step) % 4;
+			// std::cerr << "Board.step: " << op << std::endl;
 			board::reward reward = board(before).slide(op);
 			if (reward != -1) return action::slide(op);
 		}
+
 		return action();
 	}
 
 private:
 	std::array<int, 4> opcode;
+	int step = 0;
 };
