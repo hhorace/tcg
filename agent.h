@@ -67,17 +67,6 @@ protected:
 	std::default_random_engine engine;
 };
 
-class greedy_agent : public agent {
-public:
-	greedy_agent(const std::string& args = "") : agent(args) {
-		if (meta.find("seed") != meta.end())
-			engine.seed(int(meta["seed"]));
-	}
-	virtual ~greedy_agent() {}
-
-protected:
-	std::default_random_engine engine;
-};
 
 /**
  * base agent for agents with weight tables and a learning rate
@@ -193,32 +182,31 @@ private:
 	int step = 0;
 };
 
-class greedy_slider : public greedy_agent {
+class greedy_slider : public random_agent {
 public:
-	greedy_slider(const std::string& args = "") : greedy_agent("name=slide role=slider " + args),
+	greedy_slider(const std::string& args = "") : random_agent("name=slide role=slider " + args),
 		opcode({ 0, 1, 2, 3 }) {} // URDL
 
 	virtual action take_action(const board& before) {
-		float max_reward = 0;
+		float max_reward = -1;
 		int max_op = 0;
 		for (int op : opcode) {
 			board now_board = board(before);
-			board::reward reward_1st_step = now_board.slide(op);
-			if (reward_1st_step == -1) continue;
-
+			int reward_1st_step = now_board.slide(op);
+			// if (reward_1st_step == -1) continue;
+			float this_reward = (float) reward_1st_step;
 			for (int op2 : opcode){
-				board::reward reward_2nd_step = board(now_board).slide(op2);
-				if (reward_2nd_step == -1) continue;
+				int reward_2nd_step = board(now_board).slide(op2);
+				// if (reward_2nd_step == -1) continue;
 				
-				float this_reward = (float) reward_1st_step + (float) reward_2nd_step*0.2;
+				this_reward += (float) reward_2nd_step*0.2;
 				// std::cerr << reward_1st_step << "+" << reward_2nd_step << "=" << this_reward << std::endl;
-
-				max_op = (this_reward > max_reward) ? op : max_op;
-				max_reward = (this_reward > max_reward) ? this_reward : max_reward;
 			}
-			
+			max_op = (this_reward > max_reward) ? op : max_op;
+			max_reward = (this_reward > max_reward) ? this_reward : max_reward;
 		}
-		return action::slide(max_op);
+		if (max_reward != -1) return action::slide(max_op);
+		else return action();
 	}
 
 private:
