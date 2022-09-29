@@ -67,6 +67,18 @@ protected:
 	std::default_random_engine engine;
 };
 
+class greedy_agent : public agent {
+public:
+	greedy_agent(const std::string& args = "") : agent(args) {
+		if (meta.find("seed") != meta.end())
+			engine.seed(int(meta["seed"]));
+	}
+	virtual ~greedy_agent() {}
+
+protected:
+	std::default_random_engine engine;
+};
+
 /**
  * base agent for agents with weight tables and a learning rate
  */
@@ -164,21 +176,7 @@ public:
 		opcode({ 0, 1, 2, 3 }) {} // URDL
 
 	virtual action take_action(const board& before) {
-		// std::shuffle(opcode.begin(), opcode.end(), engine);
-		// for (int op : opcode) {
-		// 	std::cerr << "Board: " << before << std::endl;
-		// 	std::cerr << "Board.info: " << before.info() << std::endl;
-		// 	const board::cell* begin = before.begin();
-		// 	for (int i=0;i<16;i++){
-		// 		begin += i;
-		// 		std::cerr << "Board.hint: " << before.hint(*begin) << std::endl;
-		// 	}
-			
-		// 	board::reward reward = board(before).slide(op);
-		// 	std::cerr << "Reward: " << reward << std::endl;
-			
-		// 	if (reward != -1) return action::slide(op);
-		// }
+		std::shuffle(opcode.begin(), opcode.end(), engine);
 		for (int op : opcode) {
 			// step += 1;
 			// op = (op + step) % 4;
@@ -188,6 +186,39 @@ public:
 		}
 
 		return action();
+	}
+
+private:
+	std::array<int, 4> opcode;
+	int step = 0;
+};
+
+class greedy_slider : public greedy_agent {
+public:
+	greedy_slider(const std::string& args = "") : greedy_agent("name=slide role=slider " + args),
+		opcode({ 0, 1, 2, 3 }) {} // URDL
+
+	virtual action take_action(const board& before) {
+		float max_reward = 0;
+		int max_op = 0;
+		for (int op : opcode) {
+			board now_board = board(before);
+			board::reward reward_1st_step = now_board.slide(op);
+			if (reward_1st_step == -1) continue;
+
+			for (int op2 : opcode){
+				board::reward reward_2nd_step = board(now_board).slide(op2);
+				if (reward_2nd_step == -1) continue;
+				
+				float this_reward = (float) reward_1st_step + (float) reward_2nd_step*0.2;
+				// std::cerr << reward_1st_step << "+" << reward_2nd_step << "=" << this_reward << std::endl;
+
+				max_op = (this_reward > max_reward) ? op : max_op;
+				max_reward = (this_reward > max_reward) ? this_reward : max_reward;
+			}
+			
+		}
+		return action::slide(max_op);
 	}
 
 private:
