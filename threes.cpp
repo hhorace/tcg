@@ -62,7 +62,8 @@ int main(int argc, const char* argv[]) {
 	}
 
 	// random_slider slide(slide_args);
-	greedy_slider slide(slide_args);
+	// greedy_slider slide(slide_args);
+	td_slider slide(slide_args);
 	random_placer place(place_args);
 
 	while (!stats.is_finished()) {
@@ -81,6 +82,8 @@ int main(int argc, const char* argv[]) {
 		}
 		agent& win = game.last_turns(slide, place);
 		stats.close_episode(win.name());
+
+		slide.update_episode();
 
 		slide.close_episode(win.name());
 		place.close_episode(win.name());

@@ -217,6 +217,7 @@ public:
 			auto& row = b[i];
 			out << "|" << std::dec;
 			for (auto t : row) out << std::setw(6) << itot(t);
+			// for (auto t : row) out << std::setw(6) << t; // CS: 我把上面註解掉變成下面這樣
 			out << "|";
 			switch (i) {
 			case 0: out << " Hint: " << "X123+"[b.hint()]; break;

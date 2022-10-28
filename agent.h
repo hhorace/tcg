@@ -73,7 +73,7 @@ protected:
  */
 class weight_agent : public agent {
 public:
-	weight_agent(const std::string& args = "") : agent(args), alpha(0) {
+	weight_agent(const std::string& args = "") : agent(args), alpha(0.1f) {
 		if (meta.find("init") != meta.end())
 			init_weights(meta["init"]);
 		if (meta.find("load") != meta.end())
@@ -88,13 +88,19 @@ public:
 
 protected:
 	virtual void init_weights(const std::string& info) {
+		// std::cout << "init_weights: " << info << std::endl;
+
 		std::string res = info; // comma-separated sizes, e.g., "65536,65536"
 		for (char& ch : res)
 			if (!std::isdigit(ch)) ch = ' ';
 		std::stringstream in(res);
 		for (size_t size; in >> size; net.emplace_back(size));
+
+		// for (int i=0; i < (int) net.size(); i++)	std::cout << net[i] << " " << std::endl;
 	}
 	virtual void load_weights(const std::string& path) {
+		// std::cout << "load_weights: " << path << std::endl;
+
 		std::ifstream in(path, std::ios::in | std::ios::binary);
 		if (!in.is_open()) std::exit(-1);
 		uint32_t size;
@@ -104,6 +110,8 @@ protected:
 		in.close();
 	}
 	virtual void save_weights(const std::string& path) {
+		// std::cout << "save_weights: " << path << std::endl;
+
 		std::ofstream out(path, std::ios::out | std::ios::binary | std::ios::trunc);
 		if (!out.is_open()) std::exit(-1);
 		uint32_t size = net.size();
@@ -112,9 +120,91 @@ protected:
 		out.close();
 	}
 
+	// accumulate the total value of given state
+  float estimate(const board &b) const {
+    float value = 0;
+    for (auto& w : net) {
+      value += w.estimate(b);
+    }
+    return value;
+  }
+
+	// update the value of given state and return its new value
+  float update(const board &b, float u) {
+    float u_split = u / net.size();
+    float value = 0;
+    for (weight& w : net) {
+      value += w.update(b, u_split);
+    }
+    return value;
+  }
+
 protected:
 	std::vector<weight> net;
 	float alpha;
+};
+
+class td_slider : public weight_agent {
+public:
+  td_slider(const std::string &args = "")
+      : weight_agent("name=slide role=td_slider " + args) {
+		net.emplace_back(weight({0, 1, 2, 3, 4, 5}));
+    net.emplace_back(weight({4, 5, 6, 7, 8, 9}));
+    net.emplace_back(weight({0, 1, 2, 4, 5, 6}));
+    net.emplace_back(weight({4, 5, 6, 8, 9, 10}));
+    path_.reserve(20000);
+  }
+
+  virtual action take_action(const board &before) {
+    board after[] = {board(before), board(before), board(before),
+                     board(before)};
+    int reward[] = {after[0].slide(0), after[1].slide(1),
+                                after[2].slide(2), after[3].slide(3)};
+		constexpr const float ninf = -std::numeric_limits<float>::max();
+		// std::cout << "in take_action2" << estimate(after[0]) << std::endl;																			
+    float value[] = {
+        reward[0] == -1 ? ninf : reward[0] + estimate(after[0]),
+        reward[1] == -1 ? ninf : reward[1] + estimate(after[1]),
+        reward[2] == -1 ? ninf : reward[2] + estimate(after[2]),
+        reward[3] == -1 ? ninf : reward[3] + estimate(after[3]),
+    };
+		// std::cout << "in take_action3" << std::endl;
+    float *max_value = std::max_element(value, value + 4);
+		// std::cout << "in take_action4" << std::endl;
+    if (*max_value > ninf) {
+      unsigned idx = max_value - value;
+			// std::cout << "in take_action5" << std::endl;
+      path_.emplace_back(state({.before = before,
+                                .after = after[idx],
+                                .op = idx,
+                                .reward = static_cast<float>(reward[idx]),
+                                .value = *max_value}));
+			// std::cout << "in take_action6" << std::endl;																
+      return action::slide(idx);
+    }
+		// std::cout << "in take_action7" << std::endl;
+    path_.emplace_back(state());
+		// std::cout << "in take_action8" << std::endl;
+    return action();
+  }
+
+  void update_episode() {
+    float exact = 0;
+    for (path_.pop_back(); path_.size(); path_.pop_back()) {
+      state &move = path_.back();
+      float error = exact - (move.value - move.reward);
+      exact = move.reward + update(move.after, alpha * error);
+    }
+    path_.clear();
+  }
+
+private:
+  struct state {
+    board before, after;
+    unsigned op;
+    float reward, value;
+  };
+  std::vector<state> path_;
 };
 
 /**
