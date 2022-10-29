@@ -74,20 +74,20 @@ protected:
 class weight_agent : public agent {
 public:
 	weight_agent(const std::string& args = "") : agent(args), alpha(0.1f) {
-		if (meta.find("init") != meta.end())
-			init_weights(meta["init"]);
-		if (meta.find("load") != meta.end())
-			load_weights(meta["load"]);
+		// if (meta.find("init") != meta.end())
+		// 	init_weights(meta["init"]);
+		// if (meta.find("load") != meta.end())
+		// 	load_weights(meta["load"]);
 		if (meta.find("alpha") != meta.end())
 			alpha = float(meta["alpha"]);
 	}
 	virtual ~weight_agent() {
-		if (meta.find("save") != meta.end())
-			save_weights(meta["save"]);
+		// if (meta.find("save") != meta.end())
+		// 	save_weights(meta["save"]);
 	}
 
 protected:
-	virtual void init_weights(const std::string& info) {
+	void init_weights(const std::string& info) {
 		// std::cout << "init_weights: " << info << std::endl;
 
 		std::string res = info; // comma-separated sizes, e.g., "65536,65536"
@@ -98,7 +98,7 @@ protected:
 
 		// for (int i=0; i < (int) net.size(); i++)	std::cout << net[i] << " " << std::endl;
 	}
-	virtual void load_weights(const std::string& path) {
+	void load_weights(const std::string& path) {
 		// std::cout << "load_weights: " << path << std::endl;
 
 		std::ifstream in(path, std::ios::in | std::ios::binary);
@@ -109,7 +109,7 @@ protected:
 		for (weight& w : net) in >> w;
 		in.close();
 	}
-	virtual void save_weights(const std::string& path) {
+	void save_weights(const std::string& path) {
 		// std::cout << "save_weights: " << path << std::endl;
 
 		std::ofstream out(path, std::ios::out | std::ios::binary | std::ios::trunc);
@@ -148,11 +148,48 @@ class td_slider : public weight_agent {
 public:
   td_slider(const std::string &args = "")
       : weight_agent("name=slide role=td_slider " + args) {
-		net.emplace_back(weight({0, 1, 2, 3, 4, 5}));
-    net.emplace_back(weight({4, 5, 6, 7, 8, 9}));
-    net.emplace_back(weight({0, 1, 2, 4, 5, 6}));
-    net.emplace_back(weight({4, 5, 6, 8, 9, 10}));
+		// net.emplace_back(weight({0, 1, 2, 3, 4, 5}));
+    // net.emplace_back(weight({4, 5, 6, 7, 8, 9}));
+    // // net.emplace_back(weight({0, 1, 2, 4, 5, 6}));
+    // // net.emplace_back(weight({4, 5, 6, 8, 9, 10}));
+		// net.emplace_back(weight({5, 6, 7, 9, 10, 11}));
+		// net.emplace_back(weight({9, 10, 11, 13, 14, 15}));
+		auto a = weight({0,1,2,3});
+		net.emplace_back(a);
+		a = weight({4,5,6,7});
+		net.emplace_back(a);
+		a = weight({8, 9, 10, 11});
+		net.emplace_back(a);
+		a = weight({12,13,14,15});
+		net.emplace_back(a);
+		a = weight({0,4,8,12});
+		net.emplace_back(a);
+		a = weight({1,5,9,13});
+		net.emplace_back(a);
+		a = weight({2,6,10,14});
+		net.emplace_back(a);
+		a = weight({3,7,11,15});
+		net.emplace_back(a);
+		if (meta.find("load") != meta.end())
+      load_weights(meta["load"]);
+
+		for(int k=0;k<net.size();k++){
+			std::cout << "net[" << k << "].size(): " << net[k].size() << std::endl;
+			std::cout <<  "(" << net[k].isomorphism.size() << ")" <<std::endl;
+			for(int i=0; i<net[k].isomorphism.size();i++){
+				std::cout << "(" << net[k].isomorphism[i].size() << ")";
+				for(int j=0;j<net[k].isomorphism[i].size(); j++){
+					std::cout << net[k].isomorphism[i][j] << " ";
+				}
+				std::cout << std::endl;
+			}
+			std::cout << std::endl;
+		}
     path_.reserve(20000);
+  }
+	~td_slider() {
+    if (meta.find("save") != meta.end())
+      save_weights(meta["save"]);
   }
 
   virtual action take_action(const board &before) {

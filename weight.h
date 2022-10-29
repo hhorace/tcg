@@ -48,9 +48,11 @@ public:
 		assert(psize != 0);
 
     
-    // std::cout << "value.size: " << value.size() << ", " << p.size() << std::endl;
-    // for (int i=0;i<value.size();i++)
+    // std::cout << "value.size: " << value.size() << ", p.size: " << p.size() << std::endl;
+    // for (int i=0;i<value.size();i++){
     //   std::cout << value[i] << " ";
+    //   if(i>10) break;
+    // }
     // std::cout << std::endl;
 
     row row1 = {0,1,2,3};
@@ -77,12 +79,14 @@ public:
         idx.reflect_horizontal();
       }
       idx.rotate(i);
-      // std::cout << idx << std::endl;
+      // std::cout << psize << std::endl;
       isomorphism[i].reserve(psize);
+      // std::cout << "push idx(t): ";
       for (auto t : p) {
-        //  std::cout << idx(t) << " " << std::endl;
+        //  std::cout << idx(t) << " " ;
         isomorphism[i].push_back(idx(t));
       }
+
     }
     // std::cout << std::endl;
     // std::cout <<  "(" << isomorphism.size() << ")" <<std::endl;
@@ -134,6 +138,12 @@ public:
       value[index] += u_split;
       value_sum += value[index];
     }
+    // std::cout << "value.size: " << value.size() << std::endl;
+    // for (int i=0;i<value.size();i++){
+    //   std::cout << value[i] << " ";
+    //   if(i>10) break;
+    // }
+    // std::cout << std::endl;
     return value_sum;
   }
 
@@ -141,9 +151,12 @@ public:
 	size_t indexof(const std::vector<score> &p, const board &b) const {
     size_t index = 0;
     // std::cout << b;
+    // std::cout << "p.size(): " << p.size() << std::endl;
     for (size_t i = 0; i < p.size(); ++i){
+      // std::cout << "#" << i << "(" << p[i] << "): " << b(p[i]) << " map to " << (b(p[i]) << (i << 2)) << std::endl;
       index |= b(p[i]) << (i << 2); // b(p[i]) maps 0,1,2,3,6,12,24... to 0,1,2,3,4,5,6...
     }
+    // std::cout << index << std::endl;
     return index;
   }
 	std::string nameof(const std::vector<score> &p) const {
@@ -175,6 +188,7 @@ public:
     in.read(reinterpret_cast<char *>(&len), sizeof(len));
     name.resize(len);
     in.read(&name[0], len);
+    std::cout << name << " " << w.name() << "\n";
 		assert(name == w.name());
 		// weight
 		auto& value = w.value;
@@ -185,8 +199,9 @@ public:
 		return in;
 	}
 
-protected:
+// protected:
+public:
 	std::vector<type> value;
-	static const size_t iso_level_ = 8;
+	static const size_t iso_level_ = 1;
 	std::array<std::vector<score>, iso_level_> isomorphism;
 };
