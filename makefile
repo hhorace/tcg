@@ -11,6 +11,10 @@ judge:
 clean:
 	rm threes
 
+# ./threes --play='save=8-4-tuple_weights(1).bin alpha=0.0125' --total=600000 --block=1000 --limit=1000 | tee trainlog_8-4-tuple_600k.txt
+# ./threes --play='load=8-4-tuple_weights(1).bin alpha=0' --total=1000 --save=stats.txt
 
 # ./threes --play='save=8-4-tuple_weights(2).bin alpha=0.0125' --total=10000 --block=1000 --limit=1000 | tee trainlog_8-4-tuple_10k.txt
 # ./threes --play='load=8-4-tuple_weights(2).bin alpha=0' --total=1000 --save=stats.txt
+
+# ./threes --play='load=4-6-tuple_weights_0.003125a_1000k.bin alpha=0' --total=1000 --save=stats.txt

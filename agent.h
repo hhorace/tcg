@@ -148,28 +148,35 @@ class td_slider : public weight_agent {
 public:
   td_slider(const std::string &args = "")
       : weight_agent("name=slide role=td_slider " + args) {
-		// net.emplace_back(weight({0, 1, 2, 3, 4, 5}));
-    // net.emplace_back(weight({4, 5, 6, 7, 8, 9}));
-    // // net.emplace_back(weight({0, 1, 2, 4, 5, 6}));
-    // // net.emplace_back(weight({4, 5, 6, 8, 9, 10}));
-		// net.emplace_back(weight({5, 6, 7, 9, 10, 11}));
-		// net.emplace_back(weight({9, 10, 11, 13, 14, 15}));
-		auto a = weight({0,1,2,3});
+		/// 4-6-tuple *8 
+		auto a = weight({0, 1, 2, 3, 4, 5});
 		net.emplace_back(a);
-		a = weight({4,5,6,7});
+		a = weight({4, 5, 6, 7, 8, 9});
+    net.emplace_back(a);
+    // net.emplace_back(weight({0, 1, 2, 4, 5, 6}));
+    // net.emplace_back(weight({4, 5, 6, 8, 9, 10}));
+		a = weight({5, 6, 7, 9, 10, 11});
 		net.emplace_back(a);
-		a = weight({8, 9, 10, 11});
+		a = weight({9, 10, 11, 13, 14, 15});
 		net.emplace_back(a);
-		a = weight({12,13,14,15});
-		net.emplace_back(a);
-		a = weight({0,4,8,12});
-		net.emplace_back(a);
-		a = weight({1,5,9,13});
-		net.emplace_back(a);
-		a = weight({2,6,10,14});
-		net.emplace_back(a);
-		a = weight({3,7,11,15});
-		net.emplace_back(a);
+
+		/// 8-4-tuple
+		// auto a = weight({0,1,2,3});
+		// net.emplace_back(a);
+		// a = weight({4,5,6,7});
+		// net.emplace_back(a);
+		// a = weight({8, 9, 10, 11});
+		// net.emplace_back(a);
+		// a = weight({12,13,14,15});
+		// net.emplace_back(a);
+		// a = weight({0,4,8,12});
+		// net.emplace_back(a);
+		// a = weight({1,5,9,13});
+		// net.emplace_back(a);
+		// a = weight({2,6,10,14});
+		// net.emplace_back(a);
+		// a = weight({3,7,11,15});
+		// net.emplace_back(a);
 		if (meta.find("load") != meta.end())
       load_weights(meta["load"]);
 

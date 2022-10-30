@@ -202,6 +202,6 @@ public:
 // protected:
 public:
 	std::vector<type> value;
-	static const size_t iso_level_ = 1;
+	static const size_t iso_level_ = 8;
 	std::array<std::vector<score>, iso_level_> isomorphism;
 };
