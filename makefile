@@ -18,3 +18,5 @@ clean:
 # ./threes --play='load=8-4-tuple_weights(2).bin alpha=0' --total=1000 --save=stats.txt
 
 # ./threes --play='load=4-6-tuple_weights_0.003125a_1000k.bin alpha=0' --total=1000 --save=stats.txt
+
+# ./threes --play='load=4-6-tuple_weights_0.0003125a_2000k.bin alpha=0' --total=1000 --save=stats.txt
