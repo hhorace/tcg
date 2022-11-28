@@ -44,6 +44,7 @@ public:
 	virtual void notify(const std::string& msg) { meta[msg.substr(0, msg.find('='))] = { msg.substr(msg.find('=') + 1) }; }
 	virtual std::string name() const { return property("name"); }
 	virtual std::string role() const { return property("role"); }
+	virtual std::string cycle() const { return property("T"); }
 
 protected:
 	typedef std::string key;
@@ -110,9 +111,17 @@ public:
 		space_size(board::size_x * board::size_y), who(-1) {
 		if (name().find_first_of("[]():; ") != std::string::npos)
 			throw std::invalid_argument("invalid name: " + name());
-		if (role() == "black") who = 1;
-		if (role() == "white") who = 0;
+		// if (cycle()!="") cycles = std::stoi(cycle());
+		if (role() == "black"){
+			who = 1;
+			printf("black using mcts with cycles: %d\n\n", cycles);
+		}
+		else if (role() == "white"){
+			who = 0;
+			printf("white using mcts with cycles: %d\n\n", cycles);
+		}
 		if (who == (size_t) -1) throw std::invalid_argument("invalid role: " + role());
+		
 	}
 
 	virtual action take_action(const board& state) {
@@ -148,7 +157,7 @@ public:
 				// printf("node move_size: %d\n", node->moves_.size());
       }
       // simulation & rollout
-      size_t winner = playout(b, node->get_player()-1);
+      size_t winner = playout(b, 1-node->get_player());
 			// printf("winner: %d\n", winner);
       // backpropogation
       while (node != nullptr) {
@@ -186,6 +195,7 @@ private:
 	std::vector<action::place> legal_moves;
 	size_t space_size;
 	size_t who;
+	int cycles = 1000;
 
 	size_t playout(board b, size_t bw) {
     while (true) {

@@ -69,9 +69,20 @@ int main(int argc, const char* argv[]) {
 		if (stats.is_finished()) stats.summary();
 	}
 
+
 	// player black("name=black " + black_args + " role=black");
+	// player white("name=white " + white_args + " role=white");
+
+	// std::string str("mcts");
+
+	// if(black_args.length()>4)
+	// 	if(black_args.find(str)!= std::string::npos)
 	MCTS_player black("name=black " + black_args + " role=black");
-	player white("name=white " + white_args + " role=white");
+
+	// if(white_args.length()>4)
+	// 	if(white_args.find(str)!= std::string::npos)
+	MCTS_player white("name=white " + white_args + " role=white");
+	
 
 	if (!shell) { // launch standard local games
 		while (!stats.is_finished()) {
