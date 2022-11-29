@@ -150,6 +150,7 @@ public:
 		do {
 			Node *node = &root;
 			board b = board(state);
+			// std::array<board::board_t, 2> rave;
 			
       // selection
 			while (!node->has_untried_moves() && node->has_children()) {
@@ -157,7 +158,7 @@ public:
 				auto &&[bw, pos] = node->get_move();
 				action::place move = action::place(pos, (bw==1) ? board::black : board::white);
 				move.apply(b);
-				// printf("select\n");
+				// rave[bw].set(pos);
       }
       // expansion
       if (node->has_untried_moves()) {
@@ -165,16 +166,44 @@ public:
 				if(node->get_parent() == nullptr) bw = 1-bw;
         action::place move = action::place(pos, (bw==1) ? board::black : board::white);
         move.apply(b);
+				// rave[bw].set(pos);
 				// std::cerr << b;
         node = node->add_child(engine, b, bw, pos);
 				// printf("node move_size: %d\n", node->moves_.size());
       }
       // simulation & rollout
-      size_t winner = playout(b, 1-node->get_player());
-			// printf("winner: %d\n", winner);
+			size_t bw = 1 - node->get_player();
+			while (true) {
+				std::vector<size_t> moves;
+				for (size_t i = 0; i < board::size_x * board::size_y ; i++){
+					action::place m = action::place(i, (bw==1) ? board::black : board::white);
+					board tmp = board(b);
+					if (m.apply(tmp) == board::legal) {
+						moves.push_back(i);
+					}
+				}
+				if (moves.empty()) break;
+
+				std::uniform_int_distribution<size_t> choose(0, moves.size() - 1);
+				auto it = moves.begin() + choose(engine);
+				size_t pos = *it;
+				moves.erase(it);
+
+				action::place move = action::place(pos, (bw==1) ? board::black : board::white);
+				move.apply(b);
+				// if (is_two_go) {
+				// rave[bw].set(pos);
+					// }
+				// std::cerr << b;
+				bw = 1 - bw;
+			};
+			// size_t winner = playout(b, 1-node->get_player(), rave);
+			size_t winner =  1 - bw;
+
       // backpropogation
       while (node != nullptr) {
-        node->update(winner == node->get_player());
+        // node->update(winner == node->get_player(), rave);
+				node->update(winner == node->get_player());
         node = node->get_parent();
       }
 			// time threshold
@@ -183,7 +212,7 @@ public:
 									).count();
 			// iteration threshold
 			itr++;
-		} while (dt < threshold_time && itr<=100);
+		} while (dt < threshold_time && itr<=cycles);
 		
 		std::vector<Node> &children = root.get_children();
 		if(children.empty()) return action();
@@ -192,7 +221,8 @@ public:
 		for (const auto &child : children) {
       auto &&[wins, visits] = child.get_wins_visits();
 			auto &&[bw, pos] = child.get_move();
-			float ratio = (float) wins / (float) visits;
+			// float ratio = (float) wins / (float) visits;
+			float ratio = (float) visits;
       move_ratio.emplace(pos, ratio);
 			// printf("move(%d) ratio(%.1f=%d/%d) \n",pos,ratio,wins,visits);
     }
@@ -209,32 +239,37 @@ private:
 	size_t space_size;
 	size_t who;
 	int cycles = 1000;
-	double exploration_constant=0.1;
+	double exploration_constant=0.25;
 
-	size_t playout(board b, size_t bw) {
-    while (true) {
-			std::vector<size_t> moves;
-			for (size_t i = 0; i < board::size_x * board::size_y ; i++){
-				action::place m = action::place(i, (bw==1) ? board::black : board::white);
-				board tmp = board(b);
-				if (m.apply(tmp) == board::legal) {
-					moves.push_back(i);
-				}
-			}
-      if (moves.empty()) break;
+	// size_t playout(board b, size_t bw, const std::array<board::board_t, 2> &rave) {
+	// 	// const auto init_two_go = board.get_two_go();
+	// 	// bool is_two_go;
+  //   while (true) {
+	// 		std::vector<size_t> moves;
+	// 		for (size_t i = 0; i < board::size_x * board::size_y ; i++){
+	// 			action::place m = action::place(i, (bw==1) ? board::black : board::white);
+	// 			board tmp = board(b);
+	// 			if (m.apply(tmp) == board::legal) {
+	// 				moves.push_back(i);
+	// 			}
+	// 		}
+  //     if (moves.empty()) break;
 
-      std::uniform_int_distribution<size_t> choose(0, moves.size() - 1);
-      auto it = moves.begin() + choose(engine);
-      size_t pos = *it;
-      moves.erase(it);
+  //     std::uniform_int_distribution<size_t> choose(0, moves.size() - 1);
+  //     auto it = moves.begin() + choose(engine);
+  //     size_t pos = *it;
+  //     moves.erase(it);
 
-			action::place move = action::place(pos, (bw==1) ? board::black : board::white);
-			move.apply(b);
-			// std::cerr << b;
-      bw = 1 - bw;
-    };
-    return 1-bw;
-  }
+	// 		action::place move = action::place(pos, (bw==1) ? board::black : board::white);
+	// 		move.apply(b);
+	// 		// if (is_two_go) {
+	// 		rave[bw].set(pos);
+  //       // }
+	// 		// std::cerr << b;
+  //     bw = 1 - bw;
+  //   };
+  //   return 1-bw;
+  // }
 
 	class Node {
 	public:	
@@ -277,6 +312,10 @@ private:
 				child.uct_score_ =
 						double(child.wins_) / double(child.visits_) +
 						std::sqrt(/*2.0 * */std::log(double(visits_)) / child.visits_)*exploration_constant;
+				
+				// rave
+				// child.uct_score_ = (child.rave_wins_ + child.wins_ + std::sqrt(std::log(double(visits_)) * child.visits_) * exploration_constant) /
+        //                     (child.rave_visits_ + child.visits_);
 			}
 			return &*std::max_element(children_.begin(), children_.end(),
 																[](const Node &lhs, const Node &rhs) {
@@ -302,9 +341,23 @@ private:
 			children_.emplace_back(node);
 			return &children_.back();
 		}
-		void update(bool win) {
+		// void update(bool win, const std::array<board::board_t, 2> &rave) {
+		void update(bool win){
 			++visits_;
 			wins_ += win ? 1 : 0;
+
+			// rave
+			// const size_t csize = children_.size(),
+      //              cwin = win ? 0 : 1;
+      // const auto &rave_ = rave[1 - bw_];
+      // for (size_t i = 0; i < csize; ++i) {
+      //   auto &child = children_[i];
+
+      //   if (rave_.BIT_TEST(child.pos_)) {
+      //     ++child.rave_visits_;
+      //     child.rave_wins_ += cwin;
+      //   }
+      // }
 		}
 
 	private:
@@ -315,8 +368,8 @@ private:
 		size_t bw_;
 		size_t pos_;
 		Node *parent_;
-		double exploration_constant = 0.1;
-		size_t visits_ = 0, wins_ = 0;
+		double exploration_constant = 0.25;
+		size_t visits_ = 0, wins_ = 0, rave_wins_ = 0, rave_visits_ = 0;;
 		double uct_score_;
 	};
 };

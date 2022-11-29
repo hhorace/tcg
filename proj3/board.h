@@ -16,6 +16,9 @@
 #include <utility>
 #include <cmath>
 
+#define BIT_TEST _Unchecked_test
+#include <bitset>
+
 /**
  * definition for the 9x9 board
  * note that there is no column 'I'
@@ -214,6 +217,8 @@ public:
 	void reverse() { reflect_horizontal(); reflect_vertical(); }
 
 public:
+	using board_t = std::bitset<81>;
+
 	friend std::ostream& operator <<(std::ostream& out, const board& b) {
 		std::ios ff(nullptr);
 		ff.copyfmt(out); // make a copy of the original print format
