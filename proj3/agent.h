@@ -140,8 +140,16 @@ public:
 	virtual action take_action(const board& state) {
 		board b = board(state);
 		// std::cerr << b;
-		Node root(engine, b, 1-who, space_size);
+		Node root(engine, b, 1-who, space_size, nullptr, exploration_constant);
 		// printf("root move_size: %d\n", root.moves_.size());
+
+		// random for first 30 steps
+		// if(root.moves_.size()>40){
+		// 	std::uniform_int_distribution<size_t> choose(0, root.moves_.size() - 1);
+		// 	auto it = root.moves_.begin() + choose(engine);
+		// 	size_t pos = *it;
+		// 	return action::place(pos, (who==1) ? board::black : board::white);
+		// }
 
 		constexpr const double threshold_time = 1.;
 		const auto start_time = std::chrono::high_resolution_clock::now();
@@ -167,7 +175,7 @@ public:
         move.apply(b);
 				// rave[bw].set(pos);
 				// std::cerr << b;
-        node = node->add_child(engine, b, bw, pos);
+        node = node->add_child(engine, b, bw, pos, exploration_constant);
 				// printf("node move_size: %d\n", node->moves_.size());
       }
       // simulation & rollout
@@ -212,6 +220,7 @@ public:
 			// iteration threshold
 			itr++;
 		} while (dt < threshold_time && itr<=cycles);
+		printf("costing: %f\n",dt);
 		
 		std::vector<Node> &children = root.get_children();
 		if(children.empty()) return action();
@@ -274,11 +283,12 @@ private:
 	public:	
 		// Node() = default;
 		Node(std::default_random_engine engine, board &b, 
-				size_t who, size_t pos = board::size_x * board::size_y, Node *parent = nullptr){
+				size_t who, size_t pos = board::size_x * board::size_y, Node *parent = nullptr, double exploration_constant=0.25){
 			engine_ = engine;
 			bw_ = who;
 			pos_ = pos;
 			parent_ = parent;
+			exploration_constant_ = exploration_constant;
 			// list all move that opponent can place
 			size_t bw = 1-who;
 			for (size_t i = 0; i < board::size_x * board::size_y ; i++){
@@ -312,10 +322,10 @@ private:
 			for (auto &child : children_) {
 				child.uct_score_ =
 						double(child.wins_) / double(child.visits_) +
-						std::sqrt(/*2.0 * */std::log(double(visits_)) / child.visits_)*exploration_constant;
+						std::sqrt(/*2.0 * */std::log(double(visits_)) / child.visits_)*exploration_constant_;
 				
 				// rave
-				// child.uct_score_ = (child.rave_wins_ + child.wins_ + std::sqrt(std::log(double(visits_)) * child.visits_) * exploration_constant) /
+				// child.uct_score_ = (child.rave_wins_ + child.wins_ + std::sqrt(std::log(double(visits_)) * child.visits_) * exploration_constant_) /
         //                     (child.rave_visits_ + child.visits_);
 			}
 			return &*std::max_element(children_.begin(), children_.end(),
@@ -337,8 +347,8 @@ private:
 		
 		
 		Node *add_child(std::default_random_engine engine, board &b,
-				size_t who, size_t pos = board::size_x * board::size_y) {
-			Node node(engine, b, who, pos, this);
+				size_t who, size_t pos = board::size_x * board::size_y, double exploration_constant=0.25) {
+			Node node(engine, b, who, pos, this, exploration_constant);
 			children_.emplace_back(node);
 			return &children_.back();
 		}
@@ -369,7 +379,7 @@ private:
 		size_t bw_;
 		size_t pos_;
 		Node *parent_;
-		double exploration_constant = 0.25;
+		double exploration_constant_ = 0.25;
 		size_t visits_ = 0, wins_ = 0, rave_wins_ = 0, rave_visits_ = 0;;
 		double uct_score_;
 	};
