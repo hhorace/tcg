@@ -45,6 +45,7 @@ public:
 	virtual std::string name() const { return property("name"); }
 	virtual std::string role() const { return property("role"); }
 	virtual std::string cycle() const { return property("T"); }
+	virtual std::string exp_cons() const { return property("exp"); }
 
 protected:
 	typedef std::string key;
@@ -82,8 +83,14 @@ public:
 		space(board::size_x * board::size_y), who(board::empty) {
 		if (name().find_first_of("[]():; ") != std::string::npos)
 			throw std::invalid_argument("invalid name: " + name());
-		if (role() == "black") who = board::black;
-		if (role() == "white") who = board::white;
+		if (role() == "black"){
+			who = board::black;
+			printf("black using random \n\n");
+		}
+		if (role() == "white"){
+			who = board::white;
+			printf("white using random \n\n");
+		}
 		if (who == board::empty)
 			throw std::invalid_argument("invalid role: " + role());
 		for (size_t i = 0; i < space.size(); i++)
@@ -111,14 +118,20 @@ public:
 		space_size(board::size_x * board::size_y), who(-1) {
 		if (name().find_first_of("[]():; ") != std::string::npos)
 			throw std::invalid_argument("invalid name: " + name());
-		// if (cycle()!="") cycles = std::stoi(cycle());
+		try {
+			cycles = std::stoi(cycle());
+		} catch(std::exception &e) {}
+		try{
+			exploration_constant = std::stod(exp_cons());
+		} catch(std::exception &e) {}
+
 		if (role() == "black"){
 			who = 1;
-			printf("black using mcts with cycles: %d\n\n", cycles);
+			printf("black using mcts with cycles(%d) exp(%.2f)\n\n", cycles, exploration_constant);
 		}
 		else if (role() == "white"){
 			who = 0;
-			printf("white using mcts with cycles: %d\n\n", cycles);
+			printf("white using mcts with cycles(%d) exp(%.2f)\n\n", cycles, exploration_constant);
 		}
 		if (who == (size_t) -1) throw std::invalid_argument("invalid role: " + role());
 		
@@ -196,6 +209,7 @@ private:
 	size_t space_size;
 	size_t who;
 	int cycles = 1000;
+	double exploration_constant=0.1;
 
 	size_t playout(board b, size_t bw) {
     while (true) {
@@ -262,7 +276,7 @@ private:
 			for (auto &child : children_) {
 				child.uct_score_ =
 						double(child.wins_) / double(child.visits_) +
-						std::sqrt(2.0 * std::log(double(visits_)) / child.visits_);
+						std::sqrt(/*2.0 * */std::log(double(visits_)) / child.visits_)*exploration_constant;
 			}
 			return &*std::max_element(children_.begin(), children_.end(),
 																[](const Node &lhs, const Node &rhs) {
@@ -301,6 +315,7 @@ private:
 		size_t bw_;
 		size_t pos_;
 		Node *parent_;
+		double exploration_constant = 0.1;
 		size_t visits_ = 0, wins_ = 0;
 		double uct_score_;
 	};
