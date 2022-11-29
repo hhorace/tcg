@@ -140,7 +140,7 @@ public:
 	virtual action take_action(const board& state) {
 		board b = board(state);
 		// std::cerr << b;
-		Node root(engine, b, who, space_size);
+		Node root(engine, b, 1-who, space_size);
 		// printf("root move_size: %d\n", root.moves_.size());
 
 		constexpr const double threshold_time = 1.;
@@ -163,7 +163,6 @@ public:
       // expansion
       if (node->has_untried_moves()) {
 				auto &&[bw, pos] = node->pop_untried_move();
-				if(node->get_parent() == nullptr) bw = 1-bw;
         action::place move = action::place(pos, (bw==1) ? board::black : board::white);
         move.apply(b);
 				// rave[bw].set(pos);
@@ -280,8 +279,10 @@ private:
 			bw_ = who;
 			pos_ = pos;
 			parent_ = parent;
+			// list all move that opponent can place
+			size_t bw = 1-who;
 			for (size_t i = 0; i < board::size_x * board::size_y ; i++){
-				action::place m = action::place(i, (who==1) ? board::black : board::white);
+				action::place m = action::place(i, (bw==1) ? board::black : board::white);
 				board tmp = board(b);
 				if (m.apply(tmp) == board::legal) {
 					moves_.push_back(i);
