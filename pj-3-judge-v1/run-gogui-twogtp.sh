@@ -1,8 +1,17 @@
 #!/bin/bash
 echo "GoGui-TwoGTP Launcher V20221101"
 # commands for player 1
-P1B='../proj3/nogo --shell --name="Hollow-Black" --black="mcts T=50000 exp=0.25"'
-P1W='../proj3/nogo --shell --name="Hollow-White" --white="mcts T=50000 exp=0.25"'
+# old UTC
+# P1B='../proj3/nogo --shell --name="Hollow-Black" --black="mcts T=1000 exp=0.25"'
+# P1W='../proj3/nogo --shell --name="Hollow-White" --white="mcts T=1000 exp=0.25"'
+
+# first_term/second_term UTC
+P1B='../proj3/nogo --shell --name="Hollow-Black" --black="mcts T=1000 exp=1.25"'
+P1W='../proj3/nogo --shell --name="Hollow-White" --white="mcts T=1000 exp=1"'
+
+# P1B='../solution-pj-3/nogo --shell --name="Hollow-Black" --black="search=MCTS simulation=1000"'
+# P1W='../solution-pj-3/nogo --shell --name="Hollow-White" --white="search=MCTS simulation=1000"'
+
 # commands for local player 2
 
 # P2B='./nogo-judge --shell --name="Judge-Weak-Black" --black="weak"'

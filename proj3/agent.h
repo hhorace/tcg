@@ -320,9 +320,15 @@ private:
 
 		Node *get_UCT_child() {
 			for (auto &child : children_) {
-				child.uct_score_ =
-						double(child.wins_) / double(child.visits_) +
-						std::sqrt(/*2.0 * */std::log(double(visits_)) / child.visits_)*exploration_constant_;
+				// child.uct_score_ =
+				// 		double(child.wins_) / double(child.visits_) +
+				// 		std::sqrt(/*2.0 * */std::log(double(visits_)) / child.visits_)*exploration_constant_;
+
+				double avg = double(child.wins_) / double(child.visits_);
+				double var = avg * (1.0 - avg);
+				double first_term = std::sqrt(std::log(double(visits_)/double(child.visits_)));
+				double second_term = std::min(0.25, var + sqrt(2.0 * log(double(visits_) / double(child.visits_))) );
+				child.uct_score_ = avg + exploration_constant_ * first_term * second_term;
 				
 				// rave
 				// child.uct_score_ = (child.rave_wins_ + child.wins_ + std::sqrt(std::log(double(visits_)) * child.visits_) * exploration_constant_) /
