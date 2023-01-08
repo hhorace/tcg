@@ -6,8 +6,8 @@ echo "GoGui-TwoGTP Launcher V20221101"
 # P1W='../proj3/nogo --shell --name="Hollow-White" --white="mcts T=1000 exp=0.25"'
 
 # first_term/second_term UTC
-P1B='../proj3/nogo --shell --name="Hollow-Black" --black="mcts T=1000 exp=1.25"'
-P1W='../proj3/nogo --shell --name="Hollow-White" --white="mcts T=1000 exp=1"'
+P1B='../proj3/nogo --shell --name="Hollow-Black" --black="mcts exp=1.25"'
+P1W='../proj3/nogo --shell --name="Hollow-White" --white="mcts exp=1"'
 
 # P1B='../solution-pj-3/nogo --shell --name="Hollow-Black" --black="search=MCTS simulation=1000"'
 # P1W='../solution-pj-3/nogo --shell --name="Hollow-White" --white="search=MCTS simulation=1000"'
@@ -24,12 +24,13 @@ P2B='./nogo-judge --shell --name="Judge-Weak-Black" --black="strong"'
 P2W='./nogo-judge --shell --name="Judge-Weak-White" --white="strong"'
 
 # commands for remote player 2
-#P2B="gogui-client tcglinux1 10000"
-#P2W="gogui-client tcglinux1 10000"
+# P2B="gogui-client tcglinux6 54321"
+# P2W="gogui-client tcglinux6 54321"
 
 # other settings
 games=${1:-10} # total games to play
-timelimit=36 # total thinking time in second
+# timelimit=36 # total thinking time in second
+timelimit=300
 configs="-size 9 -komi 0 -auto -games $((games/2)) -verbose" # gogui-twogtp
 
 # set up environment

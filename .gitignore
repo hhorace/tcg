@@ -1,4 +1,6 @@
 *.bin
 *.sha256sum
 *.tar.xz
-pj-3-judge-v1/gogui-twogtp-2022*/*
+pj-3-judge-v1/gogui-twogtp-202*/*
+pj-3-judge-v1/gogui-twogtp-*
+pj-3-judge-v1/gogui-server-*

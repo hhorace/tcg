@@ -23,6 +23,16 @@
 #include <map>
 #include <tuple>
 
+#include <thread>
+#include<cstring>
+#include <omp.h>
+int best_move_[4] = { 0 };
+int visits_move_[4][100] = { 0 };
+board child_state;
+size_t num_threads = 4;
+double threshold_time = 1.;
+double remain_time = 300.;
+
 class agent {
 public:
 	agent(const std::string& args = "") {
@@ -136,8 +146,177 @@ public:
 		if (who == (size_t) -1) throw std::invalid_argument("invalid role: " + role());
 		
 	}
+	void MCTS_child(int thread_id){
+		board b = board(child_state);
+		Node root(engine, b, 1-who, space_size, nullptr, exploration_constant);
+
+		// constexpr const double threshold_time = 7.;
+		// constexpr const double threshold_time = 1.;
+		const auto start_time = std::chrono::high_resolution_clock::now();
+		double dt;
+		int itr = 0;
+
+		do {
+			Node *node = &root;
+			board b = board(child_state);
+			// std::array<board::board_t, 2> rave;
+			
+			// selection
+			while (!node->has_untried_moves() && node->has_children()) {
+				node = node->get_UCT_child();
+				auto &&[bw, pos] = node->get_move();
+				action::place move = action::place(pos, (bw==1) ? board::black : board::white);
+				move.apply(b);
+				// rave[bw].set(pos);
+			}
+			// expansion
+			if (node->has_untried_moves()) {
+				auto &&[bw, pos] = node->pop_untried_move();
+				action::place move = action::place(pos, (bw==1) ? board::black : board::white);
+				move.apply(b);
+				// rave[bw].set(pos);
+				// std::cerr << b;
+				node = node->add_child(engine, b, bw, pos, exploration_constant);
+				// printf("node move_size: %d\n", node->moves_.size());
+			}
+			// simulation & rollout
+			size_t bw = 1 - node->get_player();
+			while (true) {
+				std::vector<size_t> moves;
+				for (size_t i = 0; i < board::size_x * board::size_y ; i++){
+					action::place m = action::place(i, (bw==1) ? board::black : board::white);
+					board tmp = board(b);
+					if (m.apply(tmp) == board::legal) {
+						moves.push_back(i);
+					}
+				}
+				if (moves.empty()) break;
+
+				std::uniform_int_distribution<size_t> choose(0, moves.size() - 1);
+				auto it = moves.begin() + choose(engine);
+				size_t pos = *it;
+				moves.erase(it);
+
+				action::place move = action::place(pos, (bw==1) ? board::black : board::white);
+				move.apply(b);
+				// if (is_two_go) {
+				// rave[bw].set(pos);
+					// }
+				// std::cerr << b;
+				bw = 1 - bw;
+			};
+			// size_t winner = playout(b, 1-node->get_player(), rave);
+			size_t winner =  1 - bw;
+
+			// backpropogation
+			while (node != nullptr) {
+				// node->update(winner == node->get_player(), rave);
+				node->update(winner == node->get_player());
+				node = node->get_parent();
+			}
+			// time threshold
+			dt = 1e-9 * std::chrono::duration_cast<std::chrono::nanoseconds>(
+										std::chrono::high_resolution_clock::now() - start_time
+									).count();
+			// iteration threshold
+			itr++;
+		} while (dt < threshold_time /*&& itr<=cycles*/);
+		// printf("costing: %f\n",dt);
+
+		std::vector<Node> &children = root.get_children();
+		if(children.empty()){
+			best_move_[thread_id] = -1;
+			return;
+		}
+
+		int best_move = -1;
+		int max_visits = -1;
+		for (const auto &child : children) {
+			auto &&[wins, visits] = child.get_wins_visits();
+			auto &&[bw, pos] = child.get_move();
+			visits_move_[thread_id][pos] = visits;
+			best_move = ((int) visits > max_visits) ? pos : best_move;
+			max_visits = ((int) visits > max_visits) ? visits : max_visits;
+			// printf("now visits(%d), max_visits(%d), best_move(%d)\n", visits, max_visits, best_move);
+		}
+		
+		best_move_[thread_id] = best_move;
+		return;
+	}
 
 	virtual action take_action(const board& state) {
+		const auto start_time = std::chrono::high_resolution_clock::now();
+		num_steps++;
+		if (num_steps <= 5){
+			std::vector<int> vec = {0,	1,	2,	3,	4,	5,	6,	7,	8,
+															9,	10,	11,	12,	13,	14,	15,	16,	17,
+															18,	19,	20,	21,	22,	23,	24,	25,	26,
+															27,	28,	29,	30,	31,	32,	33,	34,	35,
+															36,	37,	38,	39,	40,	41,	42,	43,	44,
+															45,	46,	47,	48,	49,	50,	51,	52,	53,
+															54,	55,	56,	57,	58,	59,	60,	61,	62,
+															63,	64,	65,	66,	67,	68,	69,	70,	71,
+															72,	73,	74,	75,	76,	77,	78,	79,	80
+			};
+			std::shuffle(vec.begin(), vec.end(), engine);
+			
+			for (const int i : vec) {
+				auto move = action::place(i, (who==1) ? board::black : board::white);
+				board after = state;
+				if (move.apply(after) == board::legal){
+					double dt = 1e-9 * std::chrono::duration_cast<std::chrono::nanoseconds>(
+										std::chrono::high_resolution_clock::now() - start_time
+									).count();
+					remain_time -= dt;
+					printf("dt: %f\n",dt);
+					return move;
+				}
+			}
+		}
+		threshold_time = remain_time / (5.0f + std::max(45.0f-num_steps*2, 0.0f));
+
+		memset(best_move_, 0, sizeof(best_move_));
+		memset(visits_move_, 0, sizeof(visits_move_));
+		child_state = state;
+
+		// pthread_create(&t, NULL, MCTS_child, (void*) &thread_id);
+		std::thread threads[num_threads];
+		for (size_t i = 0; i < num_threads; i++) {
+        threads[i] = std::thread(&MCTS_player::MCTS_child, this, (int)i);
+    }
+    for (size_t i = 0; i < num_threads; i++) {
+        threads[i].join();
+    }
+		// std::thread t1(&MCTS_player::MCTS_child, this, 0);
+		// t1.join();
+		// printf("best_move: %d, %d, %d, %d\n", best_move_[0],best_move_[1],best_move_[2],best_move_[3]);
+
+		if(best_move_[0]==-1 && best_move_[1]==-1 && best_move_[2]==-1 && best_move_[3]==-1)	return action();
+		else{
+			int visits_move_sum[100] = {0};
+			#pragma omp parallel for num_threads(num_threads)
+			for(size_t i=0; i<100;i++){
+				visits_move_sum[i] = visits_move_[0][i] + visits_move_[1][i] + visits_move_[2][i] + visits_move_[3][i];
+			}
+			
+			// int sort_visits_move_sum[100];
+			// memcpy(sort_visits_move_sum, visits_move_sum, 100*sizeof(int));
+			// std::sort(sort_visits_move_sum, sort_visits_move_sum+100, std::greater<int>());
+			// printf("%d, %d, %d, %d, %d\n", sort_visits_move_sum[0], sort_visits_move_sum[1], sort_visits_move_sum[2], sort_visits_move_sum[3], sort_visits_move_sum[4]);
+			
+			double dt = 1e-9 * std::chrono::duration_cast<std::chrono::nanoseconds>(
+										std::chrono::high_resolution_clock::now() - start_time
+									).count();
+			remain_time -= dt;
+			// printf("dt: %f\n",dt);
+			return action::place(
+				std::distance(visits_move_sum, std::max_element(visits_move_sum, visits_move_sum + 100)), 
+				(who==1) ? board::black : board::white
+			);
+		}
+		// return action::place(best_move, (who==1) ? board::black : board::white);
+
+		/*
 		board b = board(state);
 		// std::cerr << b;
 		Node root(engine, b, 1-who, space_size, nullptr, exploration_constant);
@@ -151,10 +330,11 @@ public:
 		// 	return action::place(pos, (who==1) ? board::black : board::white);
 		// }
 
-		constexpr const double threshold_time = 1.;
+		constexpr const double threshold_time = 7.;
 		const auto start_time = std::chrono::high_resolution_clock::now();
     double dt;
 		int itr = 0;
+		
 		do {
 			Node *node = &root;
 			board b = board(state);
@@ -239,7 +419,9 @@ public:
                                           return p1.second < p2.second;
                                         })
                            ->first;
+
     return action::place(best_move, (who==1) ? board::black : board::white);
+		*/
 	}
 
 private:
@@ -248,6 +430,7 @@ private:
 	size_t who;
 	int cycles = 1000;
 	double exploration_constant=0.25;
+	size_t num_steps = 0;
 
 	// size_t playout(board b, size_t bw, const std::array<board::board_t, 2> &rave) {
 	// 	// const auto init_two_go = board.get_two_go();
